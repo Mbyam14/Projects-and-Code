@@ -1,0 +1,26 @@
+------ STORED PROCEDURE ----------
+
+CREATE OR REPLACE FUNCTION get_frontoffice_by_team(char(8), refcursor) returns REFCURSOR AS 
+$$
+DECLARE
+   team char(8) := $1;
+   resultSet REFCURSOR := $2;
+BEGIN
+   OPEN resultset for
+    	select p.pid,p.first_name, p.last_name
+		from people p
+			inner join generalmanager gm on p.pid = gm.gmid
+		where p.teamID = team
+			union 
+		select p.pid,p.first_name,p.last_name
+		from people p
+			inner join headcoach hc on p.pid = hc.hcid
+		where p.teamid = team;
+   return resultset;
+END;
+$$
+LANGUAGE PLPGSQL;
+
+select get_frontoffice_by_team ('t4','results');
+Fetch all from results;
+
