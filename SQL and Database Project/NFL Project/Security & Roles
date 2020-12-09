@@ -1,0 +1,16 @@
+---------- ROLES -------------------
+Create role commissioner;
+Grant all on all tables in schema public to commissioner;
+
+Create role front_office;
+Grant update on players to front_office;
+Grant insert on players to front_office;
+Grant select on all tables in schema public to front_office;
+
+Create role owner;
+Grant insert on headcoach, generalmanager, players to owner;
+Grant update on headcoach, generalmanager, players to owner;
+Grant select on all tables in schema public to owner;
+
+Create role player;
+Grant select on all tables in schema public to player;
