@@ -1,0 +1,41 @@
+
+
+----------- QUERY #1 -----------
+
+select distinct pl.playerID, p.first_name,p.last_name
+from people p
+	inner join players pl on p.pid = pl.playerID
+	inner join teamplayers tp on pl.playerID = tp.playerId
+	inner join team t on tp.teamID = t.teamID
+	inner join gameteams gt on t.teamId = gt.teamID
+	inner join game g on gt.gameID = g.gameID
+where t.teamID = g.winning_team
+and g.weekID = 'w7'
+and pl.position ='QB';
+
+
+
+-----QUERY #2---------
+
+select distinct p.first_name, p.last_name, p.DOB, t.Team_Name, dt.DivisionID
+from people p
+	inner join generalmanager gm on p.pid = gm.gmid
+	inner join team t on p.teamID = t.teamID
+	inner join divisionteams dt on t.teamID = dt.teamID
+	inner join gameteams gt on t.teamID = gt.teamID
+	inner join game g on gt.teamID = g.winning_team
+where p.teamID = g.away_team
+and p.DOB >='01/01/1977'
+and p.DOB<= '12/31/1977'
+	union
+select distinct p.first_name,p.last_name,p.DOB, t.Team_Name, dt.DivisionID
+from people p
+	inner join headcoach hc on p.pid = hc.hcid
+	inner join team t on p.teamID = t.teamID
+	inner join divisionteams dt on t.teamID = dt.teamID
+	inner join gameteams gt on t.teamID = gt.teamID
+	inner join game g on gt.teamID = g.winning_team
+where p.teamID = g.away_team
+and p.DOB >='01/01/1978'
+and p.DOB<= '12/31/1978'
+
