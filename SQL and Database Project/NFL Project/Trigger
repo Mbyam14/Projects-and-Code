@@ -1,0 +1,22 @@
+----- TRIGGER---------
+create or replace function Team_Validation() 
+returns trigger as
+$$
+begin
+	if (new.Team_name = team.team_name) then 
+	delete from team where team_name = new.team_name;
+	end if;
+
+	return new;
+	end; $$
+	language plpgsql;
+	
+	
+create trigger Team_Validation
+after insert on Team
+for each row
+execute procedure Team_Validation();
+
+insert into team (TeamID,city,state,team_name,HCID,GMID,divisionID,conferenceID,wins,losses,passing_yds,Rushing_yds,
+				 Total_yds,rushing_tds,passing_tds,defensive_tds,total_points,sacks,interceptions) values
+		('t9','Las Vegas','Nevada', 'Saints','hc4','gm2','d1','c1',12,4,3961,1703,5664,17,25,5,420,47,25);
