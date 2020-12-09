@@ -1,0 +1,51 @@
+
+--- League Leaders ------------ (single) 
+
+
+select p.first_name,p.last_name,pl.passing_yds
+from people p 
+	inner join players pl on p.pid = pl.playerId
+where pl.passing_yds = (select Max(passing_yds) from players);
+
+
+select p.first_name,p.last_name,pl.Rushing_yds
+from people p 
+	inner join players pl on p.pid = pl.playerId
+where pl.rushing_yds = (select Max(rushing_yds) from players);
+
+
+select p.first_name,p.last_name,pl.receiving_yds
+from people p 
+	inner join players pl on p.pid = pl.playerId
+where pl.receiving_yds = (select Max(receiving_yds) from players);
+
+
+------ top 5 league leaders (VIEWS)------- 
+-----------PASSING----------------
+Create view passing_leaders as
+select p.first_name,p.last_name,pl.passing_yds
+from people p 
+	inner join players pl on p.pid = pl.playerId
+order by pl.passing_yds desc
+limit 5;
+
+select * from passing_leaders
+
+----------RUSHING----------------
+create view rushing_leaders as
+select p.first_name,p.last_name,pl.rushing_yds
+from people p 
+	inner join players pl on p.pid = pl.playerId
+order by pl.rushing_yds desc
+limit 5;
+
+select * from rushing_leaders
+
+
+--------RECEIVING----------------
+select p.first_name,p.last_name,pl.receiving_yds
+from people p 
+	inner join players pl on p.pid = pl.playerId
+order by pl.receiving_yds desc
+limit 5;
+
