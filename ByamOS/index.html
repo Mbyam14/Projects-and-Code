@@ -1,0 +1,236 @@
+<!DOCTYPE HTML>
+<html lang="en">
+<head>
+   <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+   <meta name="Matthew Byam"             content="Alan G. Labouseur" />
+   <link rel="stylesheet" href="tsos.css" type="text/css" media="screen" />
+   <title>
+      ByamOS - a browser-based virtual Operating System in TypeScript
+   </title>
+
+   <!-- Globals CONSTANTS and _Variables. Must included be first. -->
+   <script type="text/javascript" src="distrib/globals.js"></script>
+
+   <!-- Host (Virtual Machine / Hardware Simulation) Routines -->
+   <script type="text/javascript" src="distrib/host/control.js"></script>
+   <script type="text/javascript" src="distrib/host/devices.js"></script>
+   <script type="text/javascript" src="distrib/host/cpu.js"></script>
+   <script type="text/javascript" src="distrib/host/disk.js"></script>
+   <script type="text/javascript" src="distrib/host/memory.js"></script>
+   <script type="text/javascript" src="distrib/host/memoryAccessor.js"></script>
+
+   <!-- Virtual OS Routines: Make sure Kernel code is last, since it needs those above it. -->
+   <script type="text/javascript" src="distrib/os/interrupt.js"></script>
+   <script type="text/javascript" src="distrib/os/canvastext.js"></script>
+   <script type="text/javascript" src="distrib/os/console.js"></script>
+   <script type="text/javascript" src="distrib/os/deviceDriver.js"></script>
+   <script type="text/javascript" src="distrib/os/deviceDriverDisk.js"></script>
+   <script type="text/javascript" src="distrib/os/deviceDriverKeyboard.js"></script>
+   <script type="text/javascript" src="distrib/os/Dispatcher.js"></script>
+   <script type="text/javascript" src="distrib/os/queue.js"></script>
+   <script type="text/javascript" src="distrib/os/scheduler.js"></script>
+   <script type="text/javascript" src="distrib/os/shell.js"></script>
+   <script type="text/javascript" src="distrib/os/shellCommand.js"></script>
+   <script type="text/javascript" src="distrib/os/userCommand.js"></script>
+   <script type="text/javascript" src="distrib/os/mmu.js"></script>
+   <script type="text/javascript" src="distrib/os/pcb.js"></script>
+   <script type="text/javascript" src="distrib/os/kernel.js"></script>
+
+   <!-- Other Routines -->
+   <script type="text/javascript" src="distrib/utils.js"></script>
+   <!-- Uncomment the line below to enable GLaDOS testing. -->
+   <!-- <script type="text/javascript" src="http://alanclasses.github.io/TSOS/test/glados-ip3.js"></script> -->
+</head>
+
+<body onload="onDocumentLoad()">
+
+<div id="divMain" style="width:100%;">
+   <div class = "col-12">
+      <span>
+         <h1 id = "title"> ByamOS </h1>
+      </span>
+   </div>
+   <h2>
+      <div class ="row">
+         <div id = "status">
+            Status: 
+         </div>
+      </div>
+      <div class ="row">
+         <div id ="dateTime">
+            Date & Time: 
+         </div>
+      </div>
+   </h2>
+
+   <div id = "Display" class = "container" style = "display:block" >
+      <div id="divButtonBar" style="margin:4px;">
+         <input type="button"
+                id = "btnStartOS"
+                name="brnStartOS"
+                class="normal_button"
+                value="Start"
+                tabindex="0"
+                onclick="TSOS.Control.hostBtnStartOS_click(this);">
+   
+         <input type="button"
+                id = "btnHaltOS"
+                name="brnHaltOS"
+                class="normal_button"
+                disabled="disabled"
+                value="Halt"
+                onclick="TSOS.Control.hostBtnHaltOS_click(this);">
+   
+         <input type="button"
+                id = "btnReset"
+                name="brnReset"
+                class="normal_button"
+                disabled="disabled"
+                value="Reset"
+                onclick="TSOS.Control.hostBtnReset_click(this);">
+
+         <input type="button"
+                id = "btnSSStart"
+                name="brnSSStart"
+                class="normal_button"
+                disabled="disabled"
+                value="SS Start"
+                onclick="TSOS.Control.hostSingleStepOn_click(this);">
+
+         <input type="button"
+                id = "btnSSEnd"
+                name="brnSSEnd"
+                class="normal_button"
+                disabled="disabled"
+                value="SS End"
+                onclick="TSOS.Control.hostSingleStepOff_click(this);">
+
+         <input type="button"
+                id = "btnSSAdvance"
+                name="brnSSAdvance"
+                class="normal_button"
+                disabled="disabled"
+                value="SS >"
+                onclick="TSOS.Control.hostAdvanceSingleStep_click(this);">
+      </div>
+      <div id="divConsole" style="margin:4px; width:500px; height:500px; float:left;">
+         <canvas id="display"
+               width="500px"
+               height="500px"
+               tabindex="3">
+         </canvas>
+      </div>
+      <div id="divLog" style="margin-left:520px;">
+         <label>Host Log</label>
+            <br>
+            <textarea name="taHostLog"
+                     id  ="taHostLog"
+                     rows="26"
+                     cols="48"
+            ></textarea>
+      </div>
+      <div id="divUserProgramInput" style = "margin-left:520px; width:25%">
+         <label>User Program Input</label>
+            <br>
+            <textarea name="taProgramInput"
+                        id  ="taProgramInput"
+                        rows="8"
+                        cols="48"
+            ></textarea>
+      </div>
+      <div id ="divMemoryDisplay" style = "width:50%">
+         <label>Memory</label>
+         <div id="divSegButtonBar" style="margin:4px;">
+            <input type="button"
+                   id = "btnSegment1"
+                   name="btnSegment1"
+                   class="normal_button"
+                   disabled="disabled"
+                   value="Seg 1"
+                   onclick="TSOS.Control.hostBtnSeg1_click(this);">
+      
+            <input type="button"
+                   id = "btnSegment2"
+                   name="btnSegment2"
+                   class="normal_button"
+                   disabled="disabled"
+                   value="Seg 2"
+                   onclick="TSOS.Control.hostBtnSeg2_click(this);">
+      
+            <input type="button"
+                   id = "btnSegment3"
+                   name="btnSegment3"
+                   class="normal_button"
+                   disabled="disabled"
+                   value="Seg 3"
+                   onclick="TSOS.Control.hostBtnSeg3_click(this);">
+         </div>
+            <div id ="memoryDisplayTable" style ="height:150px; overflow-y:scroll;"> 
+            </div>
+      </div>
+      <div id="divCPU">
+         <label>CPU</label>
+         <div id="displayCPU" style = "width:100%">
+               <table style="table-layout:fixed; width: 50%; text-align: center;">
+                  <tbody>
+                  <tr>
+                     <th>PC</th>
+                     <th>ACC</th>
+                     <th>IR</th>
+                     <th>X</th>
+                     <th>Y</th>
+                     <th>Z</th>
+                  </tr>
+                  <tr>
+                     <td>00</td>
+                     <td>00</td>
+                     <td>00</td>
+                     <td>00</td>
+                     <td>00</td>
+                     <td>00</td>
+                  </tr>
+                  </tbody>
+               </table>
+         </div>
+      </div>
+      <div id="divPCB">
+         <label>PCB</label>
+         <div id="displayPCB" style ="width:100%">
+            <table style="table-layout:fixed; width: 50%; text-align: center;">
+                 <tbody>
+                 <tr>
+                     <th>PID</th>
+                     <th>PC</th>
+                     <th>ACC</th>
+                     <th>IR</th>
+                     <th>X</th>
+                     <th>Y</th>
+                     <th>Z</th>
+                     <th>State</th>
+                     <th>Location</th>
+                 </tr>
+                 <tr><td colspan="11">No Processes Currently in Execution</td></tr>
+                 </tbody>
+             </table>
+         </div>
+      </div>
+         <div id="divDiskDisplay" style="margin-top: 5px;">
+            <label>Disk</label>
+            <div id="divDiskTable" style = "height:150px; overflow-y:scroll;">
+               <table id="displayDisk" style="width: 50%;">
+               </table>
+            </div>
+         </div>
+      </div>
+   </div>
+
+<p class="footerText" style="clear:both;">
+   <br>
+   Copyright &copy; 2022 No Rights Reserved.
+   <br>
+   Muggles Strictly Forbidden
+</p>
+
+</body>
+</html>
+
