@@ -1,4 +1,3 @@
 # Projects-and-Code
 
-This folder contains the code from a culmination of projects that I have created myself 
-or have created with a group that I held a leading role in the development process.
+Projects & Code is a compilation of larger projects I built throughout my college career and projects I have worked on in my free time.
