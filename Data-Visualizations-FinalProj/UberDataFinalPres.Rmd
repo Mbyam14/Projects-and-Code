@@ -1,0 +1,451 @@
+---
+title: "UberDataFinalPres"
+output:
+  pdf_document: default
+  html_notebook: default
+  word_document: default
+  html_document:
+    df_print: paged
+---
+
+```{r}
+#--------------------DATA SET 1--------------------------------------------------------------------------------
+library(ggplot2)
+library(ggthemes)
+library(lubridate)
+library(dplyr)
+library(tidyr)
+library(DT)
+library(scales)
+
+colors = c("#CC1011", "#665555", "#05a399", "#cfcaca", "#f5e840", "#0683c9", "#e075b0")
+
+apr_data <- read.csv("uber-raw-data-apr14.csv")
+may_data <- read.csv("uber-raw-data-may14.csv")
+jun_data <- read.csv("uber-raw-data-jun14.csv")
+jul_data <- read.csv("uber-raw-data-jul14.csv")
+aug_data <- read.csv("uber-raw-data-aug14.csv")
+sep_data <- read.csv("uber-raw-data-sep14.csv")
+
+
+data_2014 <- rbind(apr_data,may_data, jun_data, jul_data, aug_data, sep_data)
+
+data_2014$Date.Time <- as.POSIXct(data_2014$Date.Time, format = "%m/%d/%Y %H:%M:%S")
+
+data_2014$Time <- format(as.POSIXct(data_2014$Date.Time, format = "%m/%d/%Y %H:%M:%S"), format="%H:%M:%S")
+
+data_2014$Date.Time <- ymd_hms(data_2014$Date.Time)
+
+data_2014$day <- factor(day(data_2014$Date.Time))
+data_2014$month <- factor(month(data_2014$Date.Time, label = TRUE))
+data_2014$year <- factor(year(data_2014$Date.Time))
+data_2014$dayofweek <- factor(wday(data_2014$Date.Time, label = TRUE))
+
+data_2014$hour <- factor(hour(hms(data_2014$Time)))
+data_2014$minute <- factor(minute(hms(data_2014$Time)))
+data_2014$second <- factor(second(hms(data_2014$Time)))
+
+
+hour_data <- data_2014 %>%
+  group_by(hour) %>%
+  dplyr::summarize(Total = n()) 
+datatable(hour_data)
+
+
+```
+
+
+
+```{r}
+#----------------DATA SET 2------------------------------------------------------
+  
+cab_data <- read.csv("newcabrides.csv",header = T)
+
+cab2=cab_data[sample(nrow(cab_data),10000),]
+cab3=cab2%>%
+ filter(cab_type %in% c("Uber", "Lyft"))
+cab3$product_id=NULL
+cab3$adjusted_time=NULL
+cab3$time_stamp=NULL
+cab3$id=NULL
+ggplot(cab3, aes(price, distance, color=cab_type))+geom_point()+
+scale_y_continuous(breaks=c(0,20,40,60,80,100),labels=c("0 g","20 g", "40 g", "60 g", "80 g", "100 g"))
+
+
+```
+
+
+
+```{r}
+# This Bar plot is analyzing the hour vs the number of trips that Uber completes each day. The graph is good for analysis because it allows you to clearly
+# view the peaks and lulls that occur throughout the day and night. One of the interesting things that I assumed I would see in this graph is that it aligns
+# closely with the daily schedule of most Americans, who are traveling in the morning, slows down and then at 5 when people are going home is the largest peak
+# peak of the day.
+
+hour_data <- data_2014 %>%
+  group_by(hour) %>%
+  dplyr::summarize(Total = n()) 
+datatable(hour_data)
+
+ggplot(hour_data, aes(hour, Total)) + 
+     geom_bar( stat = "identity", fill = "grey40", color = "deepskyblue") +
+     ggtitle("Trips by Hour") +
+     theme(legend.position = "none") +
+     scale_y_continuous(labels = comma)+
+     theme_bw()+
+     labs(caption = "DataFlair.training", y = "Number of Trips", x = "Hour")
+
+```
+
+
+
+```{r}
+ubercab = cab3 %>%
+  filter(cab_type == "Uber")
+
+ubercab %>%
+        group_by(name) %>%
+        tally()
+
+black = ubercab %>%
+  filter(name %in% c("Black"))
+pool = ubercab %>%
+  filter(name %in% c("UberPool"))
+suv = ubercab %>%
+  filter(name %in% c("Black SUV"))
+x = ubercab %>%
+  filter(name %in% c("UberX"))
+xl = ubercab %>%
+  filter(name %in% c("UberXL"))
+wheel = ubercab %>%
+  filter(name %in% c("WAV"))
+
+#shows each individual connection between price and distance. Pooling optimizes price for distance offering.
+summary(lm(price ~ distance, data = xl))
+summary(lm(price ~ distance, data = x))
+summary(lm(price ~ distance, data = wheel))
+summary(lm(price ~ distance, data = suv))
+summary(lm(price ~ distance, data = black))
+summary(lm(price ~ distance, data = pool))
+
+#shows their is a correlation between type and price/distance
+summary(lm(price + distance ~ name, data = ubercab))
+
+#By running a linear model summary, the r-squared value will show how strong the correlation between price and distance is for each respective uber type. A high r-squared value demonstrates the correlation is strong, and most likely, as distance increases, the price will too. A low r-squared value demonstrates the correlation is weak, and there are occurrences where price may fluctuate higher or lower in accordance to distance when you compare Uber vehicle types. 
+
+#Uber Black having an r-squared value of 0.8402 demonstrates that distance is very consistently strongly correlated with its price. It is expected that the price will not fluctuate much at the same distances for different trips in an Uber Black. Compared to Uber Pool, with an r-squared value of 0.4798, demonstrates there is an opportunity for the price to fluctuate, and different trips in Uber Pool at the same distance may cost more or less when compared. Uber WAV also demonstrates a similar impression as Uber Pool.
+
+
+
+```
+
+
+```{r}
+ggplot(cab3, aes(price, distance, color=cab_type))+geom_point(size=2)+scale_color_manual(values=c("#FF33CC", "black"))+theme_bw()+labs(title="Price by Distance (Uber vs Lyft)", x="Price", y="Distance", color="Company")+annotate("rect", xmin=10, xmax=60, ymin=5.5, ymax=8, fill="black", alpha=.08)+annotate("rect", xmin=50, xmax=80, ymin=1, ymax=5, fill="pink", alpha=.3)
+
+#From this dot plot there is no clear indicator that prices change by time of day, although this excludes distance, meaning that the data is not 100% clear
+#Lyft has prices in more consistent bands on the graph when cheaper, but more varying prices that can be higher
+#Uber has less consistent prices, as they vary across the board, and rarely exceed $50
+
+
+```
+
+
+```{r}
+# This graph is a tile heat map that uses a gradient to show when the most popular times of day are through out an entire month. This graph is useful because it gives
+# the viewer another way to see again a similar version of the last set of data with peaks in times for rides. But also the fact that this is a common occurrence 
+# all month. A good piece of information in this heat map is that the 31st is darker overall due to the fact that not all months have a 31st.
+
+day_and_hour <- data_2014 %>%
+         group_by(day, hour) %>%
+            dplyr::summarize(Total = n())
+#datatable(day_and_hour)
+
+ggplot(day_and_hour, aes(day, hour, fill = Total)) +
+     geom_tile(color = "white") +
+     ggtitle("Heat Map by Hour and Day")+
+     labs(x = "Day", y = "Hour", caption = "Data Flair.training")
+
+```
+
+
+```{r}
+# This graph is a pie chart that compile again the number of rides total, but is dividing it by month. This graph is one I wanted to look at to see if some months
+# surged while others did not. This was confirmed when you saw a spike in ride starting in August and again another rise in September, while the other 4 months 
+# observed were low. One main hypothesis that I had for this uptick in rides was that college students are a major consumer of Uber and when students go back to 
+# school in late August if that could cause a noticeable spike. 
+
+month_group <- data_2014 %>%
+     group_by(month) %>%
+     dplyr::summarize(Total = n())
+
+
+ggplot(data = month_group, aes(x = "", y =Total, fill = month)) + 
+     geom_bar(stat = "identity", color = "black") + 
+     labs(x = " ", y = "Number of Trips", title = "Trips by Month", caption = "Data Flair.training")+
+     theme_bw()+
+     coord_polar("y")+
+     theme(axis.text = element_blank(),
+           axis.ticks = element_blank())+
+     geom_text(aes(label = Total),vjust = 1.5, color = "white", position=position_stack(vjust=.5))+ scale_fill_manual(values = c("#440154FF","#453781FF","#2D708EFF","#20A387FF","#73D055FF","slateblue2"))
+
+```
+
+
+```{r}
+cab5=cab3%>%
+ filter(name %in% c("Shared", "UberPool"))
+
+ggplot(cab5, aes(reorder(name, price),price, fill=cab_type))+geom_boxplot()+theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+scale_fill_manual(values=c("#FF33CC", "grey"))+theme_bw()
+
+#Lyft and Uber both offer a service where you can ride with people going in the same direction as you, and the results are telling
+#Lyft’s service is definitely cheaper, ranging mostly from $5-$7.50
+#Uber’s service is more expensive, ranging mostly from $7.50-$10
+
+
+```
+
+
+
+
+
+
+
+
+
+```{r}
+library(scales)
+library(lubridate)
+cab3$clock=as.POSIXct(cab3$time,format="%H:%M", tz="America/Toronto")
+lims <- as.POSIXct(strptime(c("2012-12-12 00:00","2012-12-12 00:00"), format = "%Y-%m-%d %H:%M"), tz="America/Toronto")
+
+ggplot(cab3, aes(clock, price, color=cab_type)) + geom_point() + scale_x_datetime(labels=date_format("%H:%M", tz = "America/Toronto"), breaks = date_breaks("2 hour"),minor_breaks=date_breaks("1 hour"))+scale_color_manual(values=c("#FF33CC", "black"))+theme_bw()+labs(title="Price Throughout the Day", x="Time of Day", y="Price", color="Company")
+
+#When comparing all of Uber and Lyft’s rides by price and distance, it’s easy to see which company excels
+#Uber offers rides that can be much longer, but way cheaper than Lyft is able to provide (indicated by the top shaded region)
+#Lyft offers rides that can be just as short as a regular ride, but with way more expensive fares (indicated by the shaded region on the right)
+
+
+```
+
+
+
+
+```{r}
+ggplot() + geom_point(data = pool, aes(distance,price), color = "blue", alpha = .5) + 
+  geom_point(data = black, aes(distance,price), color = "black", alpha = .5) +
+  geom_point(data = xl, aes(distance,price), color = "red", alpha = .5) +
+  geom_point(data = wheel, aes(distance,price), color = "green", alpha = .5) + 
+  geom_point(data = suv, aes(distance,price), color = "orange", alpha = .5) + 
+  theme_bw() + 
+  ylim(0,50)
+
+summary(lm(price ~ distance, data = xl))
+summary(lm(price ~ distance, data = wheel))
+summary(lm(price ~ distance, data = suv))
+summary(lm(price ~ distance, data = black))
+summary(lm(price ~ distance, data = pool))
+
+
+#The dot plot shows distance compared to the price for each type of Uber. According to the graph, Uber Pool and Uber WAV have the lowest prices when compared at the same distances. The most expensive trip per distance is for users who choose Uber Black.
+
+
+
+```
+
+
+
+
+```{r}
+cab4=cab3%>%
+  mutate(ppm=price/distance)
+ggplot(cab4,aes(clock,ppm))+geom_violin(fill="cyan3")+theme_bw()+ylab("Price per mile")+xlab("Time")+ggtitle("Time of Day vs. Price per Mile")
+
+#The violin plot shows the price per mile (Price/Distance) compared to the time of day. As seen in the graph, the most expensive price per mile occurs around 12 pm. At all other hours of the day, the price per mile remains relatively constant. The stark rise in price at noon implies that there is a strong demand for uber rides at that time. 
+
+
+```
+
+
+
+
+
+```{r}
+colors=c("steelblue","pink","cyan3","darkmagenta","coral1","darkgreen","darkseagreen1")
+month_weekday <- data_2014%>%
+         group_by(month, dayofweek) %>%
+             dplyr::summarize(Total = n())
+ggplot(month_weekday, aes(month, Total, fill = dayofweek)) + 
+       geom_bar( stat = "identity", position = "dodge") +
+          ggtitle("Trips by Day and Month") +
+           scale_y_continuous(labels = comma) +
+           scale_fill_manual(values = colors)+theme_bw()+labs(fill="Weekday")+xlab("Month")+ylab("Total Trips")
+
+
+
+#This histogram compares the month and the total number of Uber trips, while also focusing on the days of the week. For each month, the month is broken down by the days of the week, showing which days were the overall busiest in terms of the number of trips . As the months progress throughout the year in 2014, more uber trips are ordered. As this data set only contains the months April through September, the month of September has the largest amount of uber trips. As for the weekdays, Wednesday had the most trips overall ordered for the month of April, Friday for May, and Thursday for June. Wednesday and Thursday were both extremely busy for July. Friday was by far the busiest day of the week for August. Tuesday, Friday, and Saturday were all very busy for the month of September. Overall, it appears that more ubers are ordered on Wednesdays through Fridays, than the other weekdays. As for the months in 2014 , more ubers were ordered in the later months, as September had the largest overall number of trips in this data set.
+
+```
+
+
+
+```{r}
+ggplot(data_2014, aes(Base)) + 
+ geom_bar(fill = "cyan3",color="black") +
+ scale_y_continuous(labels = comma) +
+ ggtitle("Trips by Bases")+theme_bw()+ylab("Count")
+
+#This histogram displays the bases (assigned zones by Uber based on geographic location) and the number of trips ordered from these bases. The bases are located in different parts of New York City and the neighboring suburbs. Base B02512 covers the outskirts of the city into Hoboken. The Base B02598 is located near Rockefeller Center and St. Patrick’s Cathedral. Base B02617 is located near Times Square, which is one of the most populated areas in the city. Therefore, it makes sense that the most number of trips comes from that Base. Base B02682 is located in and around SOHO, which is also a very busy area in the city. Base B02764 is located in the Tribeca area, a less populated area. Thus, we can conclude that more uber trips are ordered from bases B02598, B02617, and B02682 because they are very populated areas of the city. 
+
+```
+
+- Introduction 
+
+Our goal it to optimize ridesharing, based on several variables
+Company
+Time of Day
+Time of Year (month)
+Zones created by the company (bases)
+To achieve this we will start by compare prices within companies (Uber & Lyft) to determine which is better overall
+From there we will take a deep dive into the best company and provide a comprehensive understanding of the specifics of their ridesharing
+
+
+- Dataset A
+
+Uber and Lyft trip data from the following source: https://www.kaggle.com/ravi72munde/uber-lyft-cab-prices
+
+‘distance’: The distance between source and destination.
+‘cab_type’: Whether the trip was provided by Uber or Lyft.
+‘time_stamp’: Epoch time when data was queried (converted).
+‘destination’: The destination of the trip.
+‘source’: The starting point of the ride.
+‘price’: The estimated price for the trip in United States Dollars.
+‘surge_multiplier’: The multiplier by which price was increased.
+‘id’: The unique identifier number of the trip.
+‘product_id’: The identifier number for the provider.
+‘name’: Visible type of cab.
+
+
+- Dataset B
+We have collected 2014 Uber location and timestamp data from the following source: https://drive.google.com/file/d/1emopjfEkTt59jJoBH9L9bSdmlDC4AR87/view
+
+‘Date/Time’: The date and time when the uber trip took place.
+‘Lat’: The latitude of the location where the uber trip took place.
+‘Lon’: The longitude of the location where the uber trip took place.
+‘Base’: Prescribed regions by Uber.
+
+
+- How do Uber and Lift Change prices during the day
+
+Does either company have changing prices during the day?
+Which company shows more price consistency?
+What are the overall price trends?
+
+
+- Sharing Rides with other users
+
+Advantages in riding with other people
+Which company has better shared ride prices?
+Is this consistent for Lyft across all rides?
+
+
+- Comparing Uber and Lift prices by Distance
+
+Do Uber and Lyft charge the same prices?
+Are longer trips priced the same?
+
+
+- Uber Price vs. Distance by Uber type & Correlation
+
+Which type of Uber is most cost efficient per distance?
+
+
+- Trips by Hour
+
+Highest price/
+	mile at noon
+
+Other times 
+of day remain consistent
+	with price
+	
+	
+- Daily Rides Per Hour
+
+Trip Activity over Span of 24 Hours
+Peak times are easily distinguished
+Activity can be traced to normal movement of peoples travel throughout the day. 
+
+- Day by Hour for Total Trips
+
+Heat Map distinguishes Peak activity hours along with a correlation to days in a month. 
+Is there consistency in the times of days people are active and inactive on Uber? 
+
+
+- Trips by Month
+
+Pie Chart shows 6 Months of the year and the total number of rides that are given each month.
+Does the time of year provide any context to when the number of rides might be higher?
+
+
+- Trips by Day and Month
+
+Total number of 
+	Trips based on
+	Month and Day
+	of the week
+
+Are certain months 
+	or weekdays busier
+	For Uber? 
+
+- Trips by Bases
+
+Total number of 
+	Trips based on
+	the Base (Uber
+Zones based on 
+location) 
+
+Base B02617
+	located in high 
+	Populated area 
+	of city (Times 
+Square)
+
+
+- Conclusion
+
+Lyft is more expensive than Uber overall
+Lyft Shared rides cheaper than Uber pooled rides
+But Uber has overall better prices for individual riders
+Uber rides are more common around dinner time/ early evening near the weekends, which can make them more expensive during “off-peak” times (noon)
+Uber Pool is the most cost efficient Uber type per distance.
+More Uber rides are ordered in highly populated areas
+
+
+- References
+
+Chang, W. (2021, September 23). 13.17 Creating a Map | R Graphics Cookbook, 2nd edition. R Graphics Cookbook, 2nd Edition. https://r-graphics.org/recipe-miscgraph-map
+Converting unix time into date-time via excel. (2017, September 9). Stack Overflow. https://stackoverflow.com/questions/46130132/converting-unix-time-into-date-time-via-excel
+R: as.POSIXct timezone and scale_x_datetime issues in my dataset. (2016, March 25). Stack Overflow. https://stackoverflow.com/questions/36227130/r-as-posixct-timezone-and-scale-x-datetime-issues-in-my-dataset
+Uber & Lyft Cab prices. (2019, June 24). Kaggle. https://www.kaggle.com/ravi72munde/uber-lyft-cab-prices
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
